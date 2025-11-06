@@ -331,6 +331,8 @@ int binarySearch(DynamicArray& arr, int target, int left, int right) {
     }
 }
 
+
+
 void insertionSort(DynamicArray& arr,int left, int right) {
     for (int i = left+1; i <= right; i++) {
         int value = arr[i];
@@ -341,37 +343,10 @@ void insertionSort(DynamicArray& arr,int left, int right) {
     }
 }
 
-void merge(DynamicArray& arr, int left, int mid, int right) {
-    int i = 0, j = 0;
-    int len1 = mid - left + 1;
-    int len2 = right - mid;
-    int* a = new int[len1+1];
-    int* b = new int[len2 +1];
-    a[len1] = INT_MAX;
-    b[len2] = INT_MAX;
-    for (int i = 0; i < len1; i++) {
-        a[i] = arr[left + i];
-    }
-    for (int i = mid+1; i < right+1; i++) {
-        b[j++] = arr[i];
-    }
-    i = 0;
-    j = 0;
-    for (int k = left; k <= right; k++) {
-        if (a[i] <= b[j]) {
-            arr[k] = a[i++];
-        }
-        else {
-            arr[k] = b[j++];
-        }
-    }
-	delete[] a;
-	delete[] b;
-}
 
 int calculateMinRun(int lenArr) {
 	int reminder = 0;
-	while (lenArr >= 4) {
+	while (lenArr >= 64) {
 		if (lenArr & 1) {
 			reminder++;
 		}
@@ -388,6 +363,73 @@ void reverseRun(DynamicArray& arr, int left, int right) {
 		left++;
 		right--;
 	}
+}
+
+int gallopingModernizated(DynamicArray& arr, int start, int end, int value) {
+	int limit = min(start + 7, end);
+	int i = start;
+
+	while (i < limit && arr[i] < value) {
+		i++;
+	}
+
+	if (i < limit) {
+		return i;
+	}
+
+	int step = 1;
+	int posAfterFirstCheck = start + 7;
+
+	while (posAfterFirstCheck < end && arr[posAfterFirstCheck] < value) {
+		posAfterFirstCheck = start + 7 + (1 << step);
+		step++;
+	}
+
+	int leftBound = start + 7 + (1 << (step - 1));
+	int rightBound = min(posAfterFirstCheck, end);
+
+	leftBound = min(leftBound, end);
+	rightBound = min(rightBound, end);
+	
+	return binarySearch(arr, value, leftBound, rightBound);
+	
+}
+
+void merge(DynamicArray& arr, int left, int mid, int right) {
+	int i = 0, j = 0;
+	int len1 = mid - left + 1;
+	int len2 = right - mid;
+	int* a = new int[len1 + 1];
+	int* b = new int[len2 + 1];
+	a[len1] = INT_MAX;
+	b[len2] = INT_MAX;
+	for (int i = 0; i < len1; i++) {
+		a[i] = arr[left + i];
+	}
+	for (int i = mid + 1; i < right + 1; i++) {
+		b[j++] = arr[i];
+	}
+	i = 0;
+	j = 0;
+	for (int k = left; k <= right; k++) {
+		if (a[i] <= b[j]) {
+			arr[k] = a[i++];
+		}
+		else {
+			if (len2 - j > 7) {
+				int gallopingJ = gallopingModernizated(arr, mid + 1 + j, right, a[i]);
+				if (gallopingJ > mid + 1 + j) {
+					while (mid + 1 + j < gallopingJ && k <= right) {
+						arr[k++] = b[j++];
+					}
+					k--;
+				}
+			}
+			arr[k] = b[j++];
+		}
+	}
+	delete[] a;
+	delete[] b;
 }
 
 void mergeRuns(DynamicArray& arr, Stack <pair<int, int>>& stack) {
@@ -474,32 +516,37 @@ void timSort(DynamicArray& arr, int lenArr) {
 }
 
 int main() {
-	int testArrays[][10] = {
-		{5, 2, 8, 3, 9, 1, 7, 6, 4, 0},
-		{1, 2, 3, 7, 6, 5, 10, 11, 12, 0},
-		{4, 2, 4, 4, 1, 3, 2, 5, 5, 0},
-		{10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
-		{1, 2, 3, 1, 2, 3, 1, 2, 3, 0},
-		{0, -1, 5, -3, 2, -2, 4, 1, 0, 0}
-	};
 
-	int sizes[] = { 10, 9, 9, 10, 9, 8 };
+	cout << "Введите элементы массива через пробел: ";
+	string input;
+	getline(cin, input);
 
-	for (int t = 0; t < 6; t++) {
-		cout << "Test #" << t + 1 << " before: ";
-		DynamicArray arr(20);
-		for (int i = 0; i < sizes[t]; i++) {
-			arr.insert(i, testArrays[t][i]);
-			cout << arr[i] << " ";
-		}
-		cout << endl;
+	stringstream ss(input);
+	int value;
 
-		timSort(arr, arr.size);
+	int count = 0;
+	while (ss >> value) {
+		count++;
+	}
 
-		cout << "Test #" << t + 1 << " after:  ";
-		for (int i = 0; i < arr.size; i++) {
-			cout << arr[i] << " ";
-		}
-		cout << endl << endl;
+	DynamicArray arr(count);
+
+	ss.clear();
+	ss.str(input);
+
+	while (ss >> value) {
+		arr.data[arr.size++] = value;
+	}
+
+	cout << "\nМассив до сортировки: ";
+	for (int i = 0; i < arr.size; i++) {
+		cout << arr.data[i] << " ";
+	}
+
+	timSort(arr, arr.size);
+
+	cout << "\nМассив после сортировки: ";
+	for (int i = 0; i < arr.size; i++) {
+		cout << arr.data[i] << " ";
 	}
 }
